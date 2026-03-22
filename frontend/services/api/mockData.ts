@@ -14,6 +14,11 @@ export const MOCK_PATIENTS: Patient[] = [
     department: "general",
     registrationDate: "2026-01-10T09:00",
     createdAt: "2026-01-10T09:00:00.000Z",
+    visitHistory: [
+      { id: "v1", date: "2026-01-10", complaint: "Severe Fever & Cough", doctor: "Dr. Sandeep Aggarwal", type: "OPD" },
+      { id: "v2", date: "2026-02-05", complaint: "Follow-up for Fever", doctor: "Dr. Sandeep Aggarwal", type: "OPD" },
+      { id: "v3", date: "2026-03-12", complaint: "Chest Pain", doctor: "Dr. Vinay Malhotra", type: "IPD" },
+    ]
   },
   {
     id: "2",
@@ -28,6 +33,10 @@ export const MOCK_PATIENTS: Patient[] = [
     department: "gynaecology",
     registrationDate: "2026-02-15T11:30",
     createdAt: "2026-02-15T11:30:00.000Z",
+    visitHistory: [
+      { id: "v4", date: "2026-02-15", complaint: "Routine Checkup", doctor: "Dr. Ananya Singh", type: "OPD" },
+      { id: "v5", date: "2026-03-01", complaint: "Gynaecology consultation", doctor: "Dr. Ananya Singh", type: "IPD" },
+    ]
   },
 ];
 

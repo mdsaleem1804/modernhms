@@ -29,8 +29,17 @@ export interface PatientPayload {
   notes?: string;
 }
 
+export interface Visit {
+  id: string;
+  date: string;
+  complaint: string;
+  doctor: string;
+  type: "OPD" | "IPD";
+}
+
 export interface Patient extends PatientPayload {
   id: string;
   uhid: string;
   createdAt: string;
+  visitHistory?: Visit[];
 }
