@@ -9,6 +9,7 @@ import { AppointmentViewDrawer } from "@/components/appointments/AppointmentView
 import { appointmentService } from "@/services/api/appointmentService";
 import { Appointment, AppointmentStatus } from "@/services/api/types";
 import { mockDb } from "@/services/api/mockData";
+import { opdService } from "@/services/api/opdService";
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -87,6 +88,20 @@ export default function AppointmentsPage() {
   };
 
   const handleStatusUpdate = async (id: string, status: AppointmentStatus) => {
+    if (status === "Checked-In") {
+      const appointment = appointments.find((item) => item.id === id);
+      if (appointment) {
+        await opdService.convertAppointmentToVisit({
+          appointmentId: appointment.id,
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          doctorId: appointment.doctorId,
+          doctorName: appointment.doctorName,
+          priority: appointment.priority,
+          tokenNo: appointment.tokenNo,
+        });
+      }
+    }
     await appointmentService.updateStatus(id, status);
     fetchAppointments();
   };

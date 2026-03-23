@@ -104,3 +104,74 @@ export interface Appointment {
   previousVisitId?: string;
   activityLogs?: ActivityLog[];
 }
+
+export type OPDVisitStatus = "Billing Pending" | "Waiting" | "In Consultation" | "Completed";
+export type OPDVisitSource = "Appointment" | "Walk-in";
+export type ConsultationPriority = "Normal" | "Emergency";
+export type OPDBillingStatus = "Pending" | "Paid";
+
+export interface OPDVitals {
+  temperature?: string;
+  bloodPressure?: string;
+  pulse?: string;
+  weight?: string;
+}
+
+export interface PrescriptionItem {
+  id: string;
+  medicineName: string;
+  dosage: string;
+  frequency?: string;
+  foodTiming?: "Before Food" | "After Food";
+  duration: string;
+  instructions?: string;
+}
+
+export interface OPDVisit {
+  id: string;
+  tokenNo: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  doctorName: string;
+  appointmentId: string | null;
+  source: OPDVisitSource;
+  status: OPDVisitStatus;
+  priority: ConsultationPriority;
+  visitDateTime: string;
+  consultationFeeApplicable: boolean;
+  vitals?: OPDVitals;
+  symptoms?: string;
+  commonSymptoms?: string[];
+  diagnosis?: string;
+  prescriptions: PrescriptionItem[];
+  notes?: string;
+  followUpDate?: string;
+  followUpRemarks?: string;
+  completedAt?: string;
+  billingStatus: OPDBillingStatus;
+  consultationFee: number;
+  discount?: number;
+  finalAmount?: number;
+  paymentMode?: "Cash" | "UPI" | "Card";
+  paidAt?: string;
+  isEmergency?: boolean;
+  allowCredit?: boolean;
+}
+
+export interface OPDActivityLog {
+  id: string;
+  visitId: string;
+  action: "Check-In" | "Payment Completed" | "Consultation Started" | "Consultation Completed";
+  description: string;
+  performedBy: string;
+  timestamp: string;
+}
+
+export interface MedicineCatalogItem {
+  id: string;
+  name: string;
+  standardDosage?: string;
+  frequency?: string;
+  foodTiming?: "Before Food" | "After Food";
+}

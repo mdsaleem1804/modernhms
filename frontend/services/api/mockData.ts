@@ -1,4 +1,4 @@
-import { Patient, Appointment, ActivityLog } from "./types";
+import { Patient, Appointment, ActivityLog, OPDVisit, OPDActivityLog } from "./types";
 
 export const MOCK_PATIENTS: Patient[] = [
   {
@@ -62,10 +62,27 @@ export const MOCK_SOP = [
   "Fever Protocol", "Diabetes Check", "General Consultation", "Hypertension Screening", "Post-Op Followup", "Pre-Surgery Clearance"
 ];
 
+export const MOCK_MEDICINES = [
+  { id: "m1", name: "Paracetamol 650", standardDosage: "650 mg", frequency: "1-0-1", foodTiming: "After Food" as const },
+  { id: "m2", name: "Azithromycin 500", standardDosage: "500 mg", frequency: "1-0-0", foodTiming: "After Food" as const },
+  { id: "m3", name: "Pantoprazole 40", standardDosage: "40 mg", frequency: "1-0-0", foodTiming: "Before Food" as const },
+  { id: "m4", name: "Cetirizine 10", standardDosage: "10 mg", frequency: "0-0-1", foodTiming: "After Food" as const },
+  { id: "m5", name: "Amoxicillin 500", standardDosage: "500 mg", frequency: "1-1-1", foodTiming: "After Food" as const },
+];
+
+export const MOCK_DOCTOR_CONSULTATION_FEES: Record<string, number> = {
+  d1: 500,
+  d2: 700,
+  d3: 900,
+  d4: 600,
+};
+
 // In-memory mock store
 let patients = [...MOCK_PATIENTS];
 let appointments = [...MOCK_APPOINTMENTS];
 let allActivityLogs: ActivityLog[] = [];
+let opdVisits: OPDVisit[] = [];
+let opdActivityLogs: OPDActivityLog[] = [];
 
 // Seed logs
 appointments.forEach(a => {
@@ -78,6 +95,72 @@ appointments.forEach(a => {
     timestamp: new Date().toISOString()
   });
 });
+
+appointments
+  .filter((a) => a.status === "Checked-In" || a.status === "In Consultation" || a.status === "Completed")
+  .forEach((appointment, index) => {
+    const visitStatus =
+      appointment.status === "Checked-In"
+        ? "Billing Pending"
+        : appointment.status === "In Consultation"
+          ? "In Consultation"
+          : "Completed";
+
+    const visit: OPDVisit = {
+      id: `opd-seed-${appointment.id}`,
+      tokenNo: appointment.tokenNo,
+      patientId: appointment.patientId,
+      patientName: appointment.patientName,
+      doctorId: appointment.doctorId,
+      doctorName: appointment.doctorName,
+      appointmentId: appointment.id,
+      source: "Appointment",
+      status: visitStatus,
+      priority: appointment.priority === "Emergency" ? "Emergency" : "Normal",
+      visitDateTime: `${appointment.date}T09:00:00.000Z`,
+      consultationFeeApplicable: visitStatus === "Completed",
+      prescriptions: [],
+      billingStatus: visitStatus === "Completed" || visitStatus === "In Consultation" ? "Paid" : "Pending",
+      consultationFee: MOCK_DOCTOR_CONSULTATION_FEES[appointment.doctorId] ?? 500,
+      finalAmount: MOCK_DOCTOR_CONSULTATION_FEES[appointment.doctorId] ?? 500,
+      paidAt: visitStatus === "Completed" || visitStatus === "In Consultation" ? new Date().toISOString() : undefined,
+      paymentMode: visitStatus === "Completed" || visitStatus === "In Consultation" ? "Cash" : undefined,
+      isEmergency: appointment.priority === "Emergency",
+      allowCredit: false,
+    };
+
+    opdVisits.push(visit);
+    opdActivityLogs.unshift({
+      id: `opd-log-seed-${index + 1}`,
+      visitId: visit.id,
+      action: "Check-In",
+      description: "Appointment converted to OPD visit",
+      performedBy: "Receptionist",
+      timestamp: new Date().toISOString(),
+    });
+
+    if (visit.status === "In Consultation" || visit.status === "Completed") {
+      opdActivityLogs.unshift({
+        id: `opd-log-seed-start-${index + 1}`,
+        visitId: visit.id,
+        action: "Consultation Started",
+        description: "Doctor started consultation",
+        performedBy: "Doctor",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (visit.status === "Completed") {
+      opdActivityLogs.unshift({
+        id: `opd-log-seed-complete-${index + 1}`,
+        visitId: visit.id,
+        action: "Consultation Completed",
+        description: "Consultation marked as completed",
+        performedBy: "Doctor",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
 
 export const mockDb = {
   getAppointments: () => appointments,
@@ -93,6 +176,23 @@ export const mockDb = {
   updateAppointment: (id: string, data: Partial<Appointment>) => {
     appointments = appointments.map(a => a.id === id ? { ...a, ...data } : a);
     return appointments.find(a => a.id === id);
+  },
+  getOPDVisits: () => opdVisits,
+  getOPDVisitById: (id: string) => opdVisits.find((visit) => visit.id === id),
+  getOPDVisitByAppointmentId: (appointmentId: string) =>
+    opdVisits.find((visit) => visit.appointmentId === appointmentId),
+  addOPDVisit: (visit: OPDVisit) => {
+    opdVisits = [visit, ...opdVisits];
+    return visit;
+  },
+  updateOPDVisit: (id: string, data: Partial<OPDVisit>) => {
+    opdVisits = opdVisits.map((visit) => (visit.id === id ? { ...visit, ...data } : visit));
+    return opdVisits.find((visit) => visit.id === id);
+  },
+  getOPDActivityLogs: (visitId: string) => opdActivityLogs.filter((log) => log.visitId === visitId),
+  addOPDLog: (log: OPDActivityLog) => {
+    opdActivityLogs = [log, ...opdActivityLogs];
+    return log;
   },
   getAll: () => patients,
   getTotal: () => patients.length,
