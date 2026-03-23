@@ -55,19 +55,6 @@ export default function PatientsPage() {
     { header: "Gender", accessor: (p: Patient) => p.gender || "N/A" },
     { header: "Mobile", accessor: (p: Patient) => p.phone },
     {
-      header: "Type",
-      accessor: (p: Patient) => (
-        <span
-          className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-            p.patientType === "opd" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
-          )}
-        >
-          {p.patientType}
-        </span>
-      ),
-    },
-    {
       header: "Actions",
       className: "text-right",
       accessor: (p: Patient) => (

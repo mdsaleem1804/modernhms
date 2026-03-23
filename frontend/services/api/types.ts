@@ -1,7 +1,4 @@
 export interface PatientPayload {
-  patientType: string;
-  visitType: string;
-  department: string;
   registrationDate: string;
   fullName: string;
   gender: string;
@@ -27,6 +24,34 @@ export interface PatientPayload {
   allergies?: string;
   existingConditions?: string;
   notes?: string;
+  occupyingPersonName?: string;
+  occupyingPersonPhone?: string;
+  occupyingPersonRelation?: string;
+  occupyingPersonIdProofType?: string;
+  occupyingPersonIdProofNumber?: string;
+  modeOfArrival?: ModeOfArrival;
+}
+
+export interface ModeOfArrival {
+  drName?: string;
+  drDepartment?: string;
+  drHospital?: string;
+  patientReferral?: string;
+  patientReferralOther?: string;
+  searchEngine?: string[];
+  searchEngineOther?: string;
+  socialMedia?: string[];
+  socialMediaOther?: string;
+  transportAds?: string[];
+  transportAdsOther?: string;
+  publicPlacesAds?: string[];
+  publicPlacesAdsOther?: string;
+  signages?: string[];
+  signagesOther?: string;
+  massMedia?: string[];
+  massMediaOther?: string;
+  gatherings?: string[];
+  gatheringsOther?: string;
 }
 
 export interface Visit {

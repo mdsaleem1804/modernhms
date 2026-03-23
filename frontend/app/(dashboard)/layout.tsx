@@ -29,7 +29,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
@@ -41,7 +41,7 @@ export default function DashboardLayout({
         <TopNav onMenuClick={() => setSidebarOpen(true)} />
         
         <main className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+          <div className="w-full px-6 md:px-8 lg:px-10 py-4">
             <Breadcrumbs />
             {children}
           </div>

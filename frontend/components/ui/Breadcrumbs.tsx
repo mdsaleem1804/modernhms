@@ -11,7 +11,7 @@ export function Breadcrumbs() {
   if (paths.length === 0) return null;
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+    <nav className="flex items-center space-x-2 text-xs text-gray-400 mb-4">
       <Link href="/" className="hover:text-gray-900 flex items-center">
         <Home className="w-4 h-4" />
       </Link>

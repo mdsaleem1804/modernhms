@@ -3,43 +3,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronDown, Loader2, AlertCircle, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ChevronDown, Loader2, AlertCircle, ExternalLink, CheckCircle2, Activity } from "lucide-react";
 import { useEnterToNext } from "@/hooks/useEnterToNext";
 import { FormInput } from "@/components/ui/FormInput";
 import { FormSelect } from "@/components/ui/FormSelect";
 import { FormTextarea } from "@/components/ui/FormTextarea";
 import { patientService, type Patient, type PatientPayload } from "@/services/api/patientService";
+import { type ModeOfArrival } from "@/services/api/types";
 import { calculateAge, isValidIndianMobile, isValidAadhaar } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 // ─── Options ─────────────────────────────────────────────────────────────────
-
-const patientTypeOpts = [
-  { value: "opd", label: "OPD – Outpatient" },
-  { value: "ipd", label: "IPD – Inpatient" },
-  { value: "emergency", label: "Emergency" },
-];
-const visitTypeOpts = [
-  { value: "new", label: "New Visit" },
-  { value: "followup", label: "Follow-up" },
-];
-const departmentOpts = [
-  { value: "general", label: "General Medicine" },
-  { value: "surgery", label: "Surgery" },
-  { value: "gynaecology", label: "Gynaecology & Obstetrics" },
-  { value: "paediatrics", label: "Paediatrics" },
-  { value: "orthopaedics", label: "Orthopaedics" },
-  { value: "cardiology", label: "Cardiology" },
-  { value: "neurology", label: "Neurology" },
-  { value: "ent", label: "ENT" },
-  { value: "ophthalmology", label: "Ophthalmology" },
-  { value: "dermatology", label: "Dermatology" },
-  { value: "psychiatry", label: "Psychiatry" },
-  { value: "radiology", label: "Radiology" },
-  { value: "pathology", label: "Pathology" },
-  { value: "dental", label: "Dental" },
-  { value: "physiotherapy", label: "Physiotherapy" },
-];
 const genderOpts = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
@@ -93,77 +67,28 @@ function nowLocal() {
 
 const INITIAL: PatientPayload = {
   registrationDate: nowLocal(),
-  patientType: "", visitType: "new", department: "",
   fullName: "", gender: "", dateOfBirth: "", age: "",
   phone: "", alternatePhone: "",
   idProofType: "", idProofNumber: "",
   address: "", city: "", state: "", pincode: "",
   bloodGroup: "", maritalStatus: "", occupation: "",
   guardianName: "", guardianRelation: "",
+  occupyingPersonName: "", occupyingPersonPhone: "", occupyingPersonRelation: "", occupyingPersonIdProofType: "", occupyingPersonIdProofNumber: "",
   referredBy: "",
   emergencyContactName: "", emergencyContactRelation: "", emergencyContactPhone: "",
   allergies: "", existingConditions: "", notes: "",
+  modeOfArrival: {
+    drName: "", drDepartment: "", drHospital: "",
+    patientReferral: "", patientReferralOther: "",
+    searchEngine: [], searchEngineOther: "",
+    socialMedia: [], socialMediaOther: "",
+    transportAds: [], transportAdsOther: "",
+    publicPlacesAds: [], publicPlacesAdsOther: "",
+    signages: [], signagesOther: "",
+    massMedia: [], massMediaOther: "",
+    gatherings: [], gatheringsOther: ""
+  }
 };
-
-// ─── Utility Components ──────────────────────────────────────────────────────
-
-function CollapsibleSection({
-  title,
-  defaultOpen = false,
-  optional = false,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  optional?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div className={cn(
-      "rounded-lg overflow-hidden transition-all duration-200",
-      optional
-        ? "border border-dashed border-gray-200 bg-gray-50/40"
-        : "border border-gray-200 bg-white shadow-xs"
-    )}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2 text-left hover:bg-gray-50/80 transition-colors focus:outline-none"
-      >
-        <div className="flex items-center gap-2">
-          <span className={cn(
-            "text-sm font-semibold",
-            optional ? "text-gray-500" : "text-gray-700"
-          )}>{title}</span>
-          {optional && (
-            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 leading-none shadow-sm">
-              Optional
-            </span>
-          )}
-        </div>
-        <ChevronDown
-          className={cn(
-            "w-4 h-4 transition-transform duration-200",
-            optional ? "text-gray-300" : "text-gray-400",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-      <div
-        ref={contentRef}
-        className={cn(
-          "transition-all duration-200 ease-in-out overflow-hidden",
-          open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
-        )}
-      >
-        <div className="px-4 pb-3 pt-1 border-t border-gray-100">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -179,6 +104,7 @@ export function PatientForm({ mode, initialData }: PatientFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [duplicatePatient, setDuplicatePatient] = useState<Patient | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [activeTab, setActiveTab] = useState("address");
   
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
@@ -221,19 +147,32 @@ export function PatientForm({ mode, initialData }: PatientFormProps) {
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  const upd =
-    (f: keyof PatientPayload) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-      setForm((p) => ({ ...p, [f]: e.target.value }));
-      if (f in errors) setErrors((p) => ({ ...p, [f]: undefined }));
-    };
+  const upd = (f: keyof PatientPayload) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setForm((p) => ({ ...p, [f]: e.target.value }));
+    if (f in errors) setErrors((p) => ({ ...p, [f]: undefined }));
+  };
+
+  const updMoAText = (f: keyof ModeOfArrival) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((p) => ({ ...p, modeOfArrival: { ...p.modeOfArrival, [f]: e.target.value } }));
+  };
+
+  const toggleMoA = (f: keyof ModeOfArrival, val: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((p) => {
+      const arr = (p.modeOfArrival?.[f] as string[]) || [];
+      const newArr = e.target.checked ? [...arr, val] : arr.filter((x) => x !== val);
+      return { ...p, modeOfArrival: { ...p.modeOfArrival, [f]: newArr } };
+    });
+  };
+
+  const toggleRadioMoA = (f: keyof ModeOfArrival, val: string) => () => {
+    setForm((p) => ({ ...p, modeOfArrival: { ...p.modeOfArrival, [f]: val } }));
+  };
 
   const validate = (): boolean => {
     const e: Partial<Record<keyof PatientPayload, string>> = {};
 
     if (!form.fullName.trim()) e.fullName = "Full Name is required";
     if (!form.gender) e.gender = "Gender is required";
-    if (!form.patientType) e.patientType = "Registration type required";
     
     if (!form.phone.trim()) {
       e.phone = "Mobile is required";
@@ -283,233 +222,325 @@ export function PatientForm({ mode, initialData }: PatientFormProps) {
     }
   };
 
+  const tabs = [
+    { id: "address", label: "Address Details" },
+    { id: "guardian", label: "Guardian / Relationship" },
+    { id: "occupying", label: "Occupying Person" },
+    { id: "referral", label: "Mode of Arrival" },
+    { id: "medical", label: "Medical History" },
+    { id: "other", label: "Other Details" },
+  ];
+
   return (
-    <form onSubmit={handleSubmit} noValidate onKeyDown={handleEnterKey} className="space-y-4">
-      {/* ── UHID / Status Badge ───────────────────────────────────── */}
-      <div className="flex items-center justify-between bg-white px-4 py-2 rounded-lg border border-gray-100 shadow-xs mb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest leading-none mb-1">UHID Status</span>
-            <div className="flex items-center gap-2">
-              <span className={cn(
-                "px-2 py-0.5 rounded text-xs font-mono font-bold leading-none",
-                mode === "edit" ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500 border border-gray-200"
-              )}>
-                {mode === "edit" ? initialData?.uhid : "AUTO-GENERATED ON SAVE"}
-              </span>
-              {mode === "edit" && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />}
+    <form onSubmit={handleSubmit} noValidate onKeyDown={handleEnterKey} className="pb-24 bg-slate-50/30">
+      {/* ── Main Information Section ──────────────────────────────── */}
+      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-4">
+        <div className="max-w-4xl space-y-3">
+          <h3 className="text-[11px] font-bold text-blue-600 uppercase tracking-widest mb-3">Patient Identity</h3>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+            <label className="text-[13px] font-medium text-slate-700 w-32 sm:w-40 shrink-0">Primary Name <span className="text-red-500">*</span></label>
+            <div className="flex-1 max-w-md">
+              <FormInput label="" placeholder="Enter Full Name" value={form.fullName} onChange={upd("fullName")} error={errors.fullName} ref={nameRef} />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+            <label className="text-[13px] font-medium text-slate-700 w-32 sm:w-40 shrink-0">Gender & DOB <span className="text-red-500">*</span></label>
+            <div className="flex-1 max-w-md flex gap-2">
+              <div className="w-[110px]">
+                 <FormSelect label="" options={genderOpts} value={form.gender} onChange={upd("gender")} error={errors.gender} />
+              </div>
+              <div className="flex-1 flex items-center gap-2">
+                 <FormInput label="" type="date" value={form.dateOfBirth} onChange={upd("dateOfBirth")} className="w-[130px]" />
+                 <FormInput label="" type="number" placeholder="Age" value={form.age} onChange={upd("age")} className="w-[70px]" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+            <label className="text-[13px] font-medium text-slate-700 w-32 sm:w-40 shrink-0">Contact Number <span className="text-red-500">*</span></label>
+            <div className="flex-1 max-w-md flex gap-2">
+              <div className="w-1/2 relative">
+                 <FormInput label="" maxLength={10} placeholder="Mobile" value={form.phone} onChange={upd("phone")} error={errors.phone} ref={phoneRef} className="pl-9" />
+                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[11px]">+91</div>
+              </div>
+              <div className="w-1/2">
+                 <FormInput label="" maxLength={10} placeholder="Alternate Mobile" value={form.alternatePhone} onChange={upd("alternatePhone")} className="w-full" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 pt-3 border-t border-slate-50">
+            <label className="text-[13px] font-medium text-slate-700 w-32 sm:w-40 shrink-0">Identity Proof</label>
+            <div className="flex-1 max-w-md flex gap-2">
+              <div className="w-1/3">
+                 <FormSelect label="" options={idProofOpts} value={form.idProofType} onChange={upd("idProofType")} />
+              </div>
+              <div className="w-2/3">
+                 <FormInput label="" placeholder={idProofPlaceholders[form.idProofType!] || "ID Number"} value={form.idProofNumber} onChange={upd("idProofNumber")} error={errors.idProofNumber} />
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Mode:</span>
-           <span className={cn(
-             "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider",
-             mode === "create" ? "bg-green-50 text-green-600 border border-green-100" : "bg-amber-50 text-amber-600 border border-amber-100"
-           )}>
-             {mode === "create" ? "New Registration" : "Profile Update"}
-           </span>
-        </div>
+
+        {duplicatePatient && (
+          <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200 flex items-center gap-4 animate-in slide-in-from-top-2">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-900">Record Found with same Mobile</h4>
+              <p className="text-xs text-amber-700">{duplicatePatient.fullName} ({duplicatePatient.uhid})</p>
+            </div>
+            <button type="button" onClick={() => router.push(`/patients/view/${duplicatePatient.id}`)} className="ml-auto px-4 py-1.5 bg-white border border-amber-200 rounded text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+              Go to Profile
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Quick Registration (Required) */}
-      <div className="bg-white rounded-xl border-2 border-indigo-100/50 shadow-sm px-4 py-5 space-y-5">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-black text-indigo-700 uppercase tracking-widest">A. Quick Registration</span>
-          <div className="h-[1px] flex-1 bg-indigo-50"></div>
-          <span className="text-[10px] font-bold text-white bg-indigo-500 rounded-full px-2 py-0.5 leading-none shadow-xs">Critical Fields</span>
+      {/* ── Tabs Section ──────────────────────────────────────────── */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden min-h-[400px]">
+        <div className="flex border-b border-slate-200 bg-slate-50/50">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "px-5 py-2.5 text-[13px] font-bold transition-all relative",
+                activeTab === tab.id
+                  ? "text-blue-600 bg-white"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/50"
+              )}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+              )}
+            </button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormSelect
-            label="Patient Type"
-            required
-            options={patientTypeOpts}
-            value={form.patientType}
-            onChange={upd("patientType")}
-            error={errors.patientType}
-          />
-          <FormSelect
-            label="Visit Type"
-            options={visitTypeOpts}
-            value={form.visitType}
-            onChange={upd("visitType")}
-          />
-          <FormSelect
-            label="Department"
-            options={departmentOpts}
-            value={form.department}
-            onChange={upd("department")}
-          />
-        </div>
-
-        <FormInput
-          ref={nameRef}
-          label="Full Name"
-          required
-          placeholder="e.g. Ramesh Kumar"
-          value={form.fullName}
-          onChange={upd("fullName")}
-          error={errors.fullName}
-        />
-
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <FormSelect
-            label="Gender"
-            required
-            options={genderOpts}
-            value={form.gender}
-            onChange={upd("gender")}
-            error={errors.gender}
-          />
-          <FormInput
-            label="Date of Birth"
-            type="date"
-            value={form.dateOfBirth}
-            onChange={upd("dateOfBirth")}
-            max={new Date().toISOString().split("T")[0]}
-          />
-          <FormInput
-            label="Age"
-            type="number"
-            placeholder="Auto"
-            value={form.age}
-            onChange={upd("age")}
-            error={errors.age}
-          />
-          <div className="relative">
-            <FormInput
-              label="Mobile Number"
-              required
-              maxLength={10}
-              placeholder="10 digits"
-              value={form.phone}
-              onChange={upd("phone")}
-              error={errors.phone}
-            />
-            {isCheckingDuplicate && (
-              <div className="absolute right-0 top-0 mt-7.5 mr-2">
-                <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+        <div className="p-6">
+          {activeTab === "address" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                  Current Residence Address
+                </h4>
+                <div className="space-y-4">
+                  <FormTextarea label="Street Address" value={form.address} onChange={upd("address")} rows={2} className="bg-slate-50/50 border-slate-200 rounded-lg focus:bg-white" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormInput label="City" value={form.city} onChange={upd("city")} className="bg-slate-50/50 border-slate-200" />
+                    <FormSelect label="State" options={indianStates} value={form.state} onChange={upd("state")} className="bg-slate-50/50 border-slate-200" />
+                  </div>
+                  <FormInput label="Zip/Pincode" maxLength={6} value={form.pincode} onChange={upd("pincode")} className="w-28 bg-slate-50/50 border-slate-200" />
+                </div>
               </div>
-            )}
-            
-            {/* Duplicate Warning */}
-            {duplicatePatient && (
-              <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-[11px] font-bold text-amber-900 leading-tight">Patient already exists</p>
-                    <p className="text-[10px] text-amber-700 mt-0.5 truncate">{duplicatePatient.fullName} ({duplicatePatient.uhid})</p>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/patients/view/${duplicatePatient.id}`)}
-                      className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-tight"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View Profile
-                    </button>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
+                    Permanent Address
+                  </h4>
+                  <button type="button" className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1">
+                    <Activity className="w-3 h-3" />
+                    Same as current
+                  </button>
+                </div>
+                <div className="space-y-4 opacity-60">
+                  <FormTextarea label="Street Address" rows={2} className="bg-slate-50/30 border-slate-100" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormInput label="City" className="bg-slate-50/30 border-slate-100" />
+                    <FormSelect label="State" options={indianStates} className="bg-slate-50/30 border-slate-100" />
+                  </div>
+                  <FormInput label="Zip/Pincode" className="w-28 bg-slate-50/30 border-slate-100" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "guardian" && (
+            <div className="max-w-2xl space-y-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput label="Guardian/Parent Name" value={form.guardianName} onChange={upd("guardianName")} />
+                  <FormSelect label="Relation with Patient" options={relationOpts} value={form.guardianRelation} onChange={upd("guardianRelation")} />
+               </div>
+               <div className="border-t border-slate-100 pt-6 mt-6">
+                  <h4 className="text-sm font-bold text-slate-900 mb-4">Emergency Contact</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormInput label="Contact Person Name" value={form.emergencyContactName} onChange={upd("emergencyContactName")} />
+                    <FormSelect label="Relationship" options={relationOpts} value={form.emergencyContactRelation} onChange={upd("emergencyContactRelation")} />
+                    <FormInput label="Emergency Phone" value={form.emergencyContactPhone} onChange={upd("emergencyContactPhone")} />
+                  </div>
+               </div>
+            </div>
+          )}
+
+           {activeTab === "occupying" && (
+            <div className="max-w-2xl space-y-6">
+               <h4 className="text-sm font-bold text-slate-900 mb-4">Occupying Person Details</h4>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput label="Name" value={form.occupyingPersonName} onChange={upd("occupyingPersonName")} placeholder="Full Name of occupying person" />
+                  <FormInput label="Contact Number" value={form.occupyingPersonPhone} onChange={upd("occupyingPersonPhone")} placeholder="Mobile / Phone number" />
+                  <FormInput label="Relationship" value={form.occupyingPersonRelation} onChange={upd("occupyingPersonRelation")} placeholder="e.g. Self, Son, Daughter, Tenant" />
+               </div>
+               <div className="border-t border-slate-100 pt-6 mt-6">
+                  <h4 className="text-sm font-bold text-slate-900 mb-4">Identity Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormInput label="ID Proof Type" value={form.occupyingPersonIdProofType} onChange={upd("occupyingPersonIdProofType")} placeholder="e.g. Aadhaar, PAN (write 'Not Available' if none)" />
+                      <FormInput label="ID Proof Number" value={form.occupyingPersonIdProofNumber} onChange={upd("occupyingPersonIdProofNumber")} placeholder="Enter identification number" />
+                  </div>
+               </div>
+            </div>
+          )}
+
+          {activeTab === "referral" && (
+            <div className="space-y-6">
+              <div className="text-center font-bold uppercase tracking-widest text-sm border-b-2 border-slate-900 pb-2 mb-4">
+                Patient Mode of Arrival Form
+                <p className="text-xs font-normal text-slate-500 normal-case mt-1">[Tick the appropriate check boxes and write the details wherever indicated]</p>
+              </div>
+
+              {/* Referrals */}
+              <div>
+                <h4 className="text-[#0ea5e9] text-sm mb-3">Referrals:</h4>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold w-max shrink-0">Doctor's Referral: Name</span>
+                    <FormInput label="" placeholder="" className="w-40 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" value={form.modeOfArrival?.drName || ""} onChange={updMoAText('drName')} />
+                    <span className="text-sm font-semibold ml-2">Department</span>
+                    <FormInput label="" placeholder="" className="w-32 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" value={form.modeOfArrival?.drDepartment || ""} onChange={updMoAText('drDepartment')} />
+                    <span className="text-sm font-semibold ml-2">Hospital</span>
+                    <FormInput label="" placeholder="" className="w-48 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" value={form.modeOfArrival?.drHospital || ""} onChange={updMoAText('drHospital')} />
+                  </div>
+                  <div className="flex items-center gap-4 mt-2">
+                    <span className="text-sm font-semibold shrink-0">Patient/Relatives Referral:</span>
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" className="w-4 h-4" name="patient-ref" checked={form.modeOfArrival?.patientReferral === "Same Department"} onChange={toggleRadioMoA('patientReferral', 'Same Department')} /> Same Department</label>
+                    <label className="flex items-center gap-1.5 cursor-pointer ml-4"><input type="radio" className="w-4 h-4" name="patient-ref" checked={form.modeOfArrival?.patientReferral === "Others"} onChange={toggleRadioMoA('patientReferral', 'Others')} /> Others</label>
+                    <FormInput label="" placeholder="" className="w-64 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" disabled={form.modeOfArrival?.patientReferral !== "Others"} value={form.modeOfArrival?.patientReferralOther || ""} onChange={updMoAText('patientReferralOther')} />
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-          <FormInput
-            label="Alt Mobile"
-            maxLength={10}
-            value={form.alternatePhone}
-            onChange={upd("alternatePhone")}
-          />
+
+              {/* Online Advertisements */}
+              <div className="pt-2">
+                <h4 className="text-[#0ea5e9] text-sm mb-3">Online Advertisements:</h4>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-32 shrink-0">Search Engine:</span>
+                    {["Google", "Hospital Website"].map(opt => (
+                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer mr-4"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.searchEngine?.includes(opt))} onChange={toggleMoA('searchEngine', opt)} /> {opt}</label>
+                    ))}
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.searchEngine?.includes("Others"))} onChange={toggleMoA('searchEngine', "Others")} /> Others</label>
+                    <FormInput label="" disabled={!form.modeOfArrival?.searchEngine?.includes("Others")} className="w-64 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" value={form.modeOfArrival?.searchEngineOther || ""} onChange={updMoAText('searchEngineOther')} />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-32 shrink-0">Social Media:</span>
+                    {["Facebook", "Instagram", "WhatsApp"].map(opt => (
+                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer mr-4"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.socialMedia?.includes(opt))} onChange={toggleMoA('socialMedia', opt)} /> {opt}</label>
+                    ))}
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.socialMedia?.includes("Others"))} onChange={toggleMoA('socialMedia', "Others")} /> Others</label>
+                    <FormInput label="" disabled={!form.modeOfArrival?.socialMedia?.includes("Others")} className="w-48 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" value={form.modeOfArrival?.socialMediaOther || ""} onChange={updMoAText('socialMediaOther')} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Offline Advertisements */}
+              <div className="pt-2">
+                <h4 className="text-[#0ea5e9] text-sm mb-3">Offline Advertisements:</h4>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-36 shrink-0">Transport Ads:</span>
+                    <label className="flex items-center gap-1.5 cursor-pointer mr-10"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.transportAds?.includes("Buses"))} onChange={toggleMoA('transportAds', "Buses")} /> Buses</label>
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.transportAds?.includes("Others"))} onChange={toggleMoA('transportAds', "Others")} /> Others</label>
+                    <FormInput label="" className="w-[400px] border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" disabled={!form.modeOfArrival?.transportAds?.includes("Others")} value={form.modeOfArrival?.transportAdsOther || ""} onChange={updMoAText('transportAdsOther')} />
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-36 shrink-0">Public places Ads:</span>
+                    {["Theatres", "Banners", "Barricades", "Roadside displays"].map(opt => (
+                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer mr-4"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.publicPlacesAds?.includes(opt))} onChange={toggleMoA('publicPlacesAds', opt)} /> {opt}</label>
+                    ))}
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.publicPlacesAds?.includes("Others"))} onChange={toggleMoA('publicPlacesAds', "Others")} /> Others</label>
+                    <FormInput label="" className="w-40 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" disabled={!form.modeOfArrival?.publicPlacesAds?.includes("Others")} value={form.modeOfArrival?.publicPlacesAdsOther || ""} onChange={updMoAText('publicPlacesAdsOther')} />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-36 shrink-0">Signages:</span>
+                    {["Outside Name Boards", "Pamphlets"].map(opt => (
+                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer mr-4"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.signages?.includes(opt))} onChange={toggleMoA('signages', opt)} /> {opt}</label>
+                    ))}
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.signages?.includes("Others"))} onChange={toggleMoA('signages', "Others")} /> Others</label>
+                    <FormInput label="" className="w-64 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" disabled={!form.modeOfArrival?.signages?.includes("Others")} value={form.modeOfArrival?.signagesOther || ""} onChange={updMoAText('signagesOther')} />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-36 shrink-0">Mass Media:</span>
+                    {["TV News", "FM Ad", "Newspapers"].map(opt => (
+                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer mr-4"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.massMedia?.includes(opt))} onChange={toggleMoA('massMedia', opt)} /> {opt}</label>
+                    ))}
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.massMedia?.includes("Others"))} onChange={toggleMoA('massMedia', "Others")} /> Others</label>
+                    <FormInput label="" className="w-[300px] border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" disabled={!form.modeOfArrival?.massMedia?.includes("Others")} value={form.modeOfArrival?.massMediaOther || ""} onChange={updMoAText('massMediaOther')} />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold w-36 shrink-0">Gatherings:</span>
+                    {["Health Camps", "Awareness Programs"].map(opt => (
+                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer mr-4"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.gatherings?.includes(opt))} onChange={toggleMoA('gatherings', opt)} /> {opt}</label>
+                    ))}
+                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" className="w-4 h-4" checked={Boolean(form.modeOfArrival?.gatherings?.includes("Others"))} onChange={toggleMoA('gatherings', "Others")} /> Others</label>
+                    <FormInput label="" className="w-64 border-b-2 border-t-0 border-l-0 border-r-0 rounded-none shadow-none px-0" disabled={!form.modeOfArrival?.gatherings?.includes("Others")} value={form.modeOfArrival?.gatheringsOther || ""} onChange={updMoAText('gatheringsOther')} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "medical" && (
+            <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
+               <FormTextarea label="Known Allergies" value={form.allergies} onChange={upd("allergies")} rows={3} placeholder="e.g. No known drug allergies" />
+               <FormTextarea label="Existing Medical Conditions" value={form.existingConditions} onChange={upd("existingConditions")} rows={3} />
+               <div className="md:col-span-2">
+                  <FormTextarea label="Important Medical Notes" value={form.notes} onChange={upd("notes")} rows={3} />
+               </div>
+            </div>
+          )}
+
+          {activeTab === "other" && (
+           <div className="max-w-3xl space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormSelect label="Blood Group" options={bloodGroupOpts} value={form.bloodGroup} onChange={upd("bloodGroup")} />
+                <FormSelect label="Marital Status" options={maritalOpts} value={form.maritalStatus} onChange={upd("maritalStatus")} />
+              </div>
+              <FormInput label="Occupation" value={form.occupation} onChange={upd("occupation")} />
+              <FormInput label="Referrer Name / Entity" value={form.referredBy} onChange={upd("referredBy")} placeholder="e.g. Dr. Satish Pal" />
+           </div>
+          )}
         </div>
       </div>
 
-      {/* Additional Details */}
-      <div className="space-y-3">
-        <CollapsibleSection title="B. Address & ID Proof (Optional)" optional>
-          <div className="space-y-4 pt-3">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormSelect
-                label="ID Proof Type"
-                options={idProofOpts}
-                value={form.idProofType}
-                onChange={upd("idProofType")}
-              />
-              <div className="md:col-span-2">
-                <FormInput
-                  label="ID Number"
-                  placeholder={idProofPlaceholders[form.idProofType!] || "Enter number"}
-                  value={form.idProofNumber}
-                  onChange={upd("idProofNumber")}
-                  error={errors.idProofNumber}
-                />
-              </div>
-            </div>
-            <FormTextarea label="Address" value={form.address} onChange={upd("address")} rows={2} />
-            <div className="grid grid-cols-3 gap-4">
-              <FormInput label="City" value={form.city} onChange={upd("city")} />
-              <FormSelect label="State" options={indianStates} value={form.state} onChange={upd("state")} />
-              <FormInput label="Pincode" maxLength={6} value={form.pincode} onChange={upd("pincode")} />
-            </div>
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title="C. Personal & Guardian Details (Optional)" optional>
-          <div className="space-y-4 pt-3">
-            <div className="grid grid-cols-3 gap-4">
-              <FormSelect label="Blood Group" options={bloodGroupOpts} value={form.bloodGroup} onChange={upd("bloodGroup")} />
-              <FormSelect label="Marital Status" options={maritalOpts} value={form.maritalStatus} onChange={upd("maritalStatus")} />
-              <FormInput label="Occupation" value={form.occupation} onChange={upd("occupation")} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <FormInput label="Guardian Name" value={form.guardianName} onChange={upd("guardianName")} />
-              </div>
-              <FormSelect label="Relation" options={relationOpts} value={form.guardianRelation} onChange={upd("guardianRelation")} />
-            </div>
-            <FormInput label="Referred By" value={form.referredBy} onChange={upd("referredBy")} />
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title="D. Emergency Contact (Optional)" optional>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3">
-            <FormInput label="Contact Name" value={form.emergencyContactName} onChange={upd("emergencyContactName")} />
-            <FormSelect label="Relation" options={relationOpts} value={form.emergencyContactRelation} onChange={upd("emergencyContactRelation")} />
-            <FormInput label="Contact Mobile" value={form.emergencyContactPhone} onChange={upd("emergencyContactPhone")} />
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title="E. Medical History (Optional)" optional>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
-            <FormTextarea label="Allergies" value={form.allergies} onChange={upd("allergies")} rows={2} />
-            <FormTextarea label="Conditions" value={form.existingConditions} onChange={upd("existingConditions")} rows={2} />
-            <div className="md:col-span-2">
-              <FormTextarea label="Notes" value={form.notes} onChange={upd("notes")} rows={2} />
-            </div>
-          </div>
-        </CollapsibleSection>
-      </div>
-
-      {/* Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-end gap-3 shadow-[0_-4px_10px_-1px_rgba(0,0,0,0.1)] transition-all">
-        <span className="text-[11px] font-medium text-gray-400 mr-auto hidden lg:flex items-center gap-2">
-          <AlertCircle className="w-3.5 h-3.5" />
-          Fields marked with * are mandatory for registration.
-        </span>
+      {/* ── Fixed Footer Action Bar ──────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-8 py-4 flex items-center justify-end gap-3 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
         <button
           type="button"
           onClick={() => router.push("/patients")}
           disabled={isSaving}
-          className="px-6 py-2.5 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all active:scale-95 shadow-xs"
+          className="px-6 py-2.5 rounded text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all border border-slate-300"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSaving}
-          className="flex items-center gap-2 px-10 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-sm font-bold text-white shadow-md disabled:bg-indigo-400 transition-all active:scale-95"
+          className="px-10 py-2.5 rounded bg-blue-600 hover:bg-blue-700 text-sm font-bold text-white shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center gap-2"
         >
-          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          {mode === "create" ? "Confirm & Register" : "Save Changes"}
+          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+          {mode === "create" ? "Save & Register Patient" : "Apply Changes"}
         </button>
       </div>
     </form>

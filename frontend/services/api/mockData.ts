@@ -9,9 +9,6 @@ export const MOCK_PATIENTS: Patient[] = [
     dateOfBirth: "1985-05-15",
     age: "41",
     phone: "9876543210",
-    patientType: "opd",
-    visitType: "new",
-    department: "general",
     registrationDate: "2026-01-10T09:00",
     createdAt: "2026-01-10T09:00:00.000Z",
     visitHistory: [
@@ -28,9 +25,6 @@ export const MOCK_PATIENTS: Patient[] = [
     dateOfBirth: "1992-09-22",
     age: "34",
     phone: "9123456780",
-    patientType: "ipd",
-    visitType: "followup",
-    department: "gynaecology",
     registrationDate: "2026-02-15T11:30",
     createdAt: "2026-02-15T11:30:00.000Z",
     visitHistory: [

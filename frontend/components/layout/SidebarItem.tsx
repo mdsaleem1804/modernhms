@@ -48,11 +48,11 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
     <div
       ref={itemRef}
       className={cn(
-        "group flex items-center transition-all duration-200 cursor-pointer",
-        isCollapsed ? "justify-center p-2.5 mx-auto" : "px-3 py-2.5 text-sm font-medium mx-2",
+        "group flex items-center transition-all duration-200 cursor-pointer mx-2 rounded-lg",
+        isCollapsed ? "justify-center p-2.5" : "px-3 py-2 text-sm font-medium",
         isActive && !hasChildren
-          ? "bg-indigo-50 text-indigo-700 shadow-sm rounded-xl"
-          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-xl",
+          ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
+          : "text-slate-400 hover:bg-slate-800 hover:text-white",
         depth > 0 && !isCollapsed && "pl-10"
       )}
       onClick={() => hasChildren && !isCollapsed && setIsOpen(!isOpen)}
@@ -63,7 +63,7 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
         className={cn(
           "flex-shrink-0 h-5 w-5 transition-colors",
           !isCollapsed && "mr-3",
-          isActive ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-500"
+          isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"
         )}
       />
       
@@ -71,12 +71,12 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
         <>
           <span className="flex-1 truncate">{item.title}</span>
           {item.badge && (
-            <span className="ml-2 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            <span className="ml-2 bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30">
               {item.badge}
             </span>
           )}
           {hasChildren && (
-            <ChevronDown className={cn("ml-2 w-4 h-4 transition-transform", isOpen && "rotate-180")} />
+            <ChevronDown className={cn("ml-2 w-4 h-4 transition-transform text-slate-500", isOpen && "rotate-180")} />
           )}
         </>
       )}
@@ -90,17 +90,17 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
           onMouseLeave={() => setIsTooltipVisible(false)}
         >
           {!hasChildren ? (
-            <div className="bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl whitespace-nowrap flex items-center gap-2">
+            <div className="bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-2xl border border-slate-700 whitespace-nowrap flex items-center gap-2">
               {item.title}
               {item.badge && (
-                <span className="bg-indigo-500 text-white text-[10px] px-1.5 rounded-full">{item.badge}</span>
+                <span className="bg-blue-500 text-white text-[10px] px-1.5 rounded-full">{item.badge}</span>
               )}
-              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 border-y-[4px] border-y-transparent border-r-[4px] border-r-gray-900" />
+              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 border-y-[4px] border-y-transparent border-r-[4px] border-r-slate-800" />
             </div>
           ) : (
-            <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl p-2 min-w-[220px] ml-1 overflow-hidden">
-              <div className="pb-2 mb-2 border-b border-gray-50 px-3 pt-1">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.title}</p>
+            <div className="bg-[#1a1f2e] border border-slate-800 shadow-2xl rounded-xl p-2 min-w-[200px] ml-1 overflow-hidden">
+              <div className="pb-2 mb-2 border-b border-slate-800 px-3 pt-1">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.title}</p>
               </div>
               <div className="space-y-0.5">
                 {item.children?.map((child) => (
@@ -108,13 +108,13 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
                     key={child.title} 
                     href={child.path!}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 text-sm font-semibold rounded-xl transition-all",
+                      "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all",
                       pathname === child.path 
-                        ? "bg-indigo-50 text-indigo-700" 
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-blue-600 text-white" 
+                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
                     )}
                   >
-                    <child.icon className={cn("w-4 h-4", pathname === child.path ? "text-indigo-600" : "text-gray-400")} />
+                    <child.icon className={cn("w-4 h-4", pathname === child.path ? "text-white" : "text-slate-500")} />
                     <span>{child.title}</span>
                   </Link>
                 ))}
